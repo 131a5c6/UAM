@@ -1,0 +1,261 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* 上部に寄せる */
+    min-height: 100vh;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    width: 90%;
+    max-width: 800px; /* 全体の最大幅を調整 */
+    text-align: center;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 1.8em;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.controls div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.controls label {
+    font-size: 0.9em;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.controls input[type="number"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 80px;
+    font-size: 1em;
+    text-align: center;
+}
+
+button {
+    padding: 10px 20px;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    align-self: flex-end; /* inputの下に揃える */
+}
+
+#startButton {
+    background-color: #28a745; /* 緑色 */
+}
+#startButton:hover {
+    background-color: #218838;
+}
+#resetButton {
+    background-color: #dc3545; /* 赤色 */
+}
+#resetButton:hover {
+    background-color: #c82333;
+}
+
+
+.display-area {
+    display: flex;
+    justify-content: space-around;
+    background-color: #e9ecef;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.display-area span {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.simulation-area {
+    position: relative;
+    width: 700px; /* シミュレーション領域の幅を固定 (約100mに対応) */
+    height: 180px; /* 高さを維持 */
+    border: 3px solid #6c757d; /* ボーダーを太く、色も少し濃く変更 */
+    background-color: #fdfdfd;
+    overflow: hidden; /* オブジェクトがはみ出してもスクロールさせない */
+    margin: 0 auto 20px auto; /* 中央揃え */
+    border-radius: 8px;
+}
+
+.ground-line {
+    position: absolute;
+    bottom: 50px; /* 地面線を維持 */
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #6c757d;
+    z-index: 1;
+}
+
+#object {
+    position: absolute;
+    width: 20px; /* 車のボディの幅を調整 */
+    height: 10px; /* 車のボディの高さを調整 */
+    background-color: #007bff; /* 車のボディの色 */
+    border-radius: 3px 3px 0 0; /* 上部を少し丸くする */
+    bottom: 40px; /* 地面線の上に配置するよう変更 */
+    left: 0px;
+    z-index: 3;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2); /* 影で立体感を出す */
+}
+
+/* 窓の表現 */
+#object::before {
+    content: '';
+    position: absolute;
+    top: -5px; /* ボディの上部からの位置 */
+    left: 5px;
+    width: 10px; /* 窓の幅 */
+    height: 7px; /* 窓の高さ */
+    background-color: #5bb7ff; /* 窓の色 */
+    border-radius: 2px 2px 0 0; /* 窓の上部を丸く */
+    z-index: 4; /* 車体より手前に */
+}
+
+/* タイヤの表現 */
+#object::after {
+    content: '';
+    position: absolute;
+    bottom: -5px; /* ボディの下部からの位置 */
+    left: 3px; /* 前輪の位置 */
+    width: 7px; /* タイヤの幅 */
+    height: 7px; /* タイヤの高さ */
+    background-color: #333; /* タイヤの色 */
+    border-radius: 50%; /* 円形にする */
+    z-index: 2; /* 車体より奥に */
+    box-shadow: 10px 0 0 #333; /* 後輪を表現 */
+}
+
+/* 横軸の目盛りスタイル */
+.scale-marks {
+    position: absolute;
+    bottom: 0; /* シミュレーションエリアの最下部に配置 */
+    left: 0;
+    width: 100%;
+    height: 50px; /* ★目盛りとラベルが収まるように高さをさらに調整★ */
+    display: flex;
+    align-items: flex-end; /* 下に揃える */
+    font-size: 0.8em;
+    color: #333;
+    z-index: 5; /* 目盛り線が前面に来るように */
+}
+
+.scale-mark {
+    position: absolute;
+    height: 25px; /* ★目盛り線を窓枠と重なるように長くする★ */
+    width: 2px;
+    background-color: #333;
+    bottom: 0; /* ★シミュレーションエリアの底に固定する★ */
+    transform: translateX(-50%); /* 中央に線を配置 */
+    z-index: 5; /* 目盛り線が前面に来るように */
+}
+
+.scale-label {
+    position: absolute;
+    bottom: 25px; /* ★目盛り線の上に位置するように調整 (bottom: scale-mark height + padding)★ */
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+    z-index: 6; /* ラベルは目盛り線よりも前面に */
+}
+
+/* 軌跡のプロットスタイル */
+.path-plots {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+}
+
+.plot-dot {
+    position: absolute;
+    width: 20px; /* 車のボディの幅と合わせる */
+    height: 10px; /* 車のボディの高さと合わせる */
+    background-color: rgba(0, 123, 255, 0.3); /* 半透明の車のボディ色 */
+    border-radius: 3px 3px 0 0; /* 上部を少し丸くする */
+    transform: translateX(-50%);
+    bottom: 40px; /* オブジェクトと同じ高さに調整 */
+    z-index: 3;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1); /* 影で立体感を出す（薄めに） */
+}
+
+/* 軌跡の窓の表現（半透明） */
+.plot-dot::before {
+    content: '';
+    position: absolute;
+    top: -5px; /* ボディの上部からの位置 */
+    left: 5px;
+    width: 10px; /* 窓の幅 */
+    height: 7px; /* 窓の高さ */
+    background-color: rgba(91, 183, 255, 0.3); /* 半透明の窓の色 */
+    border-radius: 2px 2px 0 0; /* 窓の上部を丸く */
+    z-index: 4;
+}
+
+/* 軌跡のタイヤの表現（半透明） */
+.plot-dot::after {
+    content: '';
+    position: absolute;
+    bottom: -5px; /* ボディの下部からの位置 */
+    left: 3px; /* 前輪の位置 */
+    width: 7px; /* タイヤの幅 */
+    height: 7px; /* タイヤの高さ */
+    background-color: rgba(51, 51, 51, 0.3); /* 半透明のタイヤの色 */
+    border-radius: 50%; /* 円形にする */
+    z-index: 2;
+    box-shadow: 10px 0 0 rgba(51, 51, 51, 0.3); /* 後輪を表現（半透明） */
+}
+
+.plot-distance-label {
+    position: absolute;
+    bottom: 65px;
+    transform: translateX(-50%);
+    font-size: 0.75em;
+    color: #666;
+    white-space: nowrap;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 2px 4px;
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.footer {
+    margin-top: 30px;
+    font-size: 0.8em;
+    color: #888;
+}
