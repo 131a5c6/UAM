@@ -108,13 +108,14 @@ button {
 
 .simulation-area {
     position: relative;
-    width: 1200px; /* 900pxから1200pxに変更 */
-    height: 800px; /* 1200pxから800pxに変更 (3:2 の比率に合わせる: 1200 * 2 / 3 = 800) */
+    width: 1200px;
+    height: 800px;
     border: 2px solid #ccc;
     background-color: #f8f9fa;
-    overflow: hidden;
+    overflow: hidden; /* スライドさせるので overflow: hidden は必須 */
     margin: 0 auto 30px auto;
     border-radius: 8px;
+    cursor: grab; /* ドラッグできることを示すカーソル */
 }
 
 .ground-line {
@@ -180,22 +181,23 @@ button {
     z-index: 2;
 }
 
+/* 目盛りの線とラベルのスタイルを調整 (見やすくするため) */
 .scale-mark {
     position: absolute;
-    bottom: 0; /* 親要素の最下部に揃える */
+    bottom: 0;
     width: 1px;
-    background-color: #6c757d;
-    transform: translateX(-50%); /* 中央に線を配置 */
+    background-color: #a0a0a0; /* 少し薄めに */
+    transform: translateX(-50%);
     z-index: 2;
-    height: 25px; /* 短い目盛り線の高さ */
+    height: 6px; /* 短い目盛り線の高さ */
 }
 
 .scale-label {
     position: absolute;
     bottom: -30px;
-    transform: translateX(-50%); /* 中央にラベルを配置 */
-    white-space: nowrap; /* ラベルの改行を防ぐ */
-    font-size: 1.1em;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 1em; /* 少し大きく */
     font-weight: bold;
     color: #555;
     z-index: 2;
@@ -252,7 +254,7 @@ button {
 
 .plot-distance-label {
     position: absolute;
-    bottom: 420px; /* 軌跡車の少し上に表示: 620pxから420pxに変更 */
+    bottom: 420px; /* 軌跡車の少し上に表示 */
     transform: translateX(-50%);
     font-size: 0.9em;
     color: #666;
@@ -260,7 +262,21 @@ button {
     background-color: rgba(255, 255, 255, 0.7);
     padding: 2px 4px;
     border-radius: 3px;
-    pointer-events: none; /* ラベルがクリックイベントをブロックしないように */
+    pointer-events: none;
+    z-index: 4;
+}
+
+.plot-velocity-label {
+    position: absolute;
+    bottom: 445px; /* 距離ラベルよりさらに上に表示 */
+    transform: translateX(-50%);
+    font-size: 0.8em;
+    color: #444;
+    white-space: nowrap;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 2px 4px;
+    border-radius: 3px;
+    pointer-events: none;
     z-index: 4;
 }
 
