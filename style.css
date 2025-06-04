@@ -252,12 +252,13 @@ button {
     box-shadow: 40px 0 0 rgba(51, 51, 51, 0.3); /* 後輪を表現（半透明） */
 }
 
-.plot-distance-label {
+/* 新しく追加する経過時間ラベルのスタイル */
+.plot-time-label {
     position: absolute;
-    bottom: 420px; /* 軌跡車の少し上に表示 */
+    bottom: 470px; /* 速度ラベルよりさらに上に表示 */
     transform: translateX(-50%);
-    font-size: 0.9em;
-    color: #666;
+    font-size: 0.7em; /* 他のラベルより少し小さくする */
+    color: #2a6f2a; /* 時間なので少し違う色に */
     white-space: nowrap;
     background-color: rgba(255, 255, 255, 0.7);
     padding: 2px 4px;
@@ -268,10 +269,24 @@ button {
 
 .plot-velocity-label {
     position: absolute;
-    bottom: 445px; /* 距離ラベルよりさらに上に表示 */
+    bottom: 445px; /* 経過時間ラベルと距離ラベルの間に配置 */
     transform: translateX(-50%);
     font-size: 0.8em;
     color: #444;
+    white-space: nowrap;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 2px 4px;
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.plot-distance-label {
+    position: absolute;
+    bottom: 420px; /* 軌跡車の少し上に表示 */
+    transform: translateX(-50%);
+    font-size: 0.9em;
+    color: #666;
     white-space: nowrap;
     background-color: rgba(255, 255, 255, 0.7);
     padding: 2px 4px;
