@@ -389,5 +389,101 @@ simulationArea.addEventListener('mouseleave', () => {
     simulationArea.style.cursor = 'grab';
 });
 
+// ★シミュレーションエリアのドラッグによるスライド移動機能★
+simulationArea.addEventListener('mousedown', (e) => {
+    if (isRunning) return; // シミュレーション中はドラッグ無効
+
+    isDragging = true;
+    dragStartX = e.clientX;
+    initialViewCenterM = currentViewCenterM; // ドラッグ開始時の中心位置を記録
+    simulationArea.style.cursor = 'grabbing'; // カーソルを変更
+});
+
+simulationArea.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+
+    const dragDeltaPx = e.clientX - dragStartX; // ドラッグによるピクセル移動量
+    const dragDeltaM = dragDeltaPx / SCALE_FACTOR; // ピクセル移動量をメートルに変換
+
+    // 新しい中心位置を計算 (ドラッグ方向と反対に動かすためマイナス)
+    let newViewCenterM = initialViewCenterM - dragDeltaM;
+
+    // 表示範囲の境界チェック
+    const viewPortWidthM = SIM_AREA_WIDTH_PX / SCALE_FACTOR;
+    const halfViewPortWidthM = viewPortWidthM / 2;
+
+    if (newViewCenterM - halfViewPortWidthM < GLOBAL_MIN_POSITION_M) {
+        newViewCenterM = GLOBAL_MIN_POSITION_M + halfViewPortWidthM;
+    }
+    if (newViewCenterM + halfViewPortWidthM > GLOBAL_MAX_POSITION_M) {
+        newViewCenterM = GLOBAL_MAX_POSITION_M - halfViewPortWidthM;
+    }
+
+    currentViewCenterM = newViewCenterM;
+
+    // 全要素の位置を更新
+    updateElementsPosition();
+});
+
+simulationArea.addEventListener('mouseup', () => {
+    isDragging = false;
+    simulationArea.style.cursor = 'grab'; // カーソルを元に戻す
+});
+
+simulationArea.addEventListener('mouseleave', () => {
+    // エリア外に出たらドラッグを終了
+    isDragging = false;
+    simulationArea.style.cursor = 'grab';
+});
+
+// ★タッチイベントの追加★
+simulationArea.addEventListener('touchstart', (e) => {
+    if (isRunning) return; // シミュレーション中はタッチ操作無効
+    e.preventDefault(); // デフォルトのスクロール動作などを防止
+
+    isDragging = true;
+    // 最初のタッチポイントのX座標を取得
+    dragStartX = e.touches[0].clientX;
+    initialViewCenterM = currentViewCenterM;
+    // タッチデバイスではカーソルの変更は直接反映されないが、ロジックとしては含める
+    simulationArea.style.cursor = 'grabbing';
+}, { passive: false }); // preventDefault() を使うため passive: false に設定
+
+simulationArea.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault(); // デフォルトのスクロール動作などを防止
+
+    // 現在のタッチポイントのX座標を取得
+    const currentTouchX = e.touches[0].clientX;
+    const dragDeltaPx = currentTouchX - dragStartX;
+    const dragDeltaM = dragDeltaPx / SCALE_FACTOR;
+
+    let newViewCenterM = initialViewCenterM - dragDeltaM;
+
+    const viewPortWidthM = SIM_AREA_WIDTH_PX / SCALE_FACTOR;
+    const halfViewPortWidthM = viewPortWidthM / 2;
+
+    if (newViewCenterM - halfViewPortWidthM < GLOBAL_MIN_POSITION_M) {
+        newViewCenterM = GLOBAL_MIN_POSITION_M + halfViewPortWidthM;
+    }
+    if (newViewCenterM + halfViewPortWidthM > GLOBAL_MAX_POSITION_M) {
+        newViewCenterM = GLOBAL_MAX_POSITION_M - halfViewPortWidthM;
+    }
+
+    currentViewCenterM = newViewCenterM;
+
+    updateElementsPosition();
+}, { passive: false }); // preventDefault() を使うため passive: false に設定
+
+simulationArea.addEventListener('touchend', () => {
+    isDragging = false;
+    simulationArea.style.cursor = 'grab';
+});
+
+simulationArea.addEventListener('touchcancel', () => {
+    isDragging = false;
+    simulationArea.style.cursor = 'grab';
+});
+
 // 初期表示とアニメーションの準備
 initializeSimulation(); // ページロード時に一度初期化
