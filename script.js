@@ -190,16 +190,14 @@ function initializeSimulation() {
 function animate(timestamp) {
     if (!isRunning) return;
 
-    const deltaTime = (timestamp - lastTimestamp) / 1000 * simSpeed; // 秒単位で経過時間を計算し、シミュレーション速度を適用
+    const deltaTime = (timestamp - lastTimestamp) / 1000 * simSpeed;
     lastTimestamp = timestamp;
 
-    // 物理量の更新
     time += deltaTime;
-    const newPosition = v0 * time + 0.5 * a * time * time; // 等加速度運動の公式 x = v0t + 0.5at^2
-    const newVelocity = v0 + a * time; // その時点の速度を計算
+    const newPosition = v0 * time + 0.5 * a * time * time;
+    const newVelocity = v0 + a * time;
 
     // --- 軌跡のプロットのロジック ---
-    // PLOT_TIME_INTERVAL_S ごとにプロットを追加
     if (Math.floor(time / PLOT_TIME_INTERVAL_S) > Math.floor(lastPlotTime / PLOT_TIME_INTERVAL_S)) {
         const currentPlotPointTime = Math.floor(time / PLOT_TIME_INTERVAL_S) * PLOT_TIME_INTERVAL_S;
 
@@ -207,29 +205,25 @@ function animate(timestamp) {
              const plotPositionAtTime = v0 * currentPlotPointTime + 0.5 * a * currentPlotPointTime * currentPlotPointTime;
              const plotVelocityAtTime = v0 + a * currentPlotPointTime;
 
-            // プロットをグローバル範囲内で表示
             if (plotPositionAtTime >= GLOBAL_MIN_POSITION_M && plotPositionAtTime <= GLOBAL_MAX_POSITION_M) {
-                addPathPlot(plotPositionAtTime, plotVelocityAtTime);
+                // ★経過時間を引数として追加★
+                addPathPlot(plotPositionAtTime, plotVelocityAtTime, currentPlotPointTime);
             }
             lastPlotTime = currentPlotPointTime;
         }
     }
 
-    position = newPosition; // 位置を更新
-    velocity = newVelocity; // 速度を更新
+    position = newPosition;
+    velocity = newVelocity;
 
-    // オブジェクトのDOM要素の位置を更新
     objectElement.style.left = `${meterToPixel(position)}px`;
 
-    // ★オブジェクトが画面の中心から外れたら、表示ウィンドウをスクロールする★
     const objectScreenX = meterToPixel(position);
     const centerScreenX = SIM_AREA_WIDTH_PX / 2;
-    const scrollThreshold = SIM_AREA_WIDTH_PX * 0.2; // 画面端から20%の範囲
+    const scrollThreshold = SIM_AREA_WIDTH_PX * 0.2;
 
     if (objectScreenX < centerScreenX - scrollThreshold || objectScreenX > centerScreenX + scrollThreshold) {
-        // オブジェクトの現在の位置を中心に表示ウィンドウを更新
         currentViewCenterM = position;
-        // 表示範囲の境界を超えないように制限
         const viewPortWidthM = SIM_AREA_WIDTH_PX / SCALE_FACTOR;
         const halfViewPortWidthM = viewPortWidthM / 2;
 
@@ -240,16 +234,11 @@ function animate(timestamp) {
             currentViewCenterM = GLOBAL_MAX_POSITION_M - halfViewPortWidthM;
         }
 
-        // 全要素の位置を更新（目盛りと軌跡も）
         updateElementsPosition();
     }
 
-
-    // 数値表示の更新
     updateDisplay();
 
-    // 画面の左右端（-1000mと1000m）を完全に超えたらアニメーションを停止
-    // GLOBAL_MIN/MAX_POSITION_M を使用
     if (position >= GLOBAL_MIN_POSITION_M && position <= GLOBAL_MAX_POSITION_M) {
         animationFrameId = requestAnimationFrame(animate);
     } else {
@@ -264,47 +253,55 @@ function animate(timestamp) {
  * シミュレーションエリアに軌跡のプロットを追加する関数。
  * @param {number} plotPositionM - プロットする位置 (m)
  * @param {number} plotVelocityM - プロットする時点の速度 (m/s)
+ * @param {number} plotTimeS - プロットする時点の経過時間 (s) // ★新しい引数★
  */
-function addPathPlot(plotPositionM, plotVelocityM) {
+function addPathPlot(plotPositionM, plotVelocityM, plotTimeS) { // ★引数を追加★
     const plotDot = document.createElement('div');
     plotDot.classList.add('plot-dot');
-    plotDot.setAttribute('data-position', plotPositionM); // 後で位置更新するために保存
+    plotDot.setAttribute('data-position', plotPositionM);
     plotDot.style.left = `${meterToPixel(plotPositionM)}px`;
     pathPlotsContainer.appendChild(plotDot);
 
-    // 距離表示用のラベル
-    const distanceLabel = document.createElement('span');
-    distanceLabel.classList.add('plot-distance-label');
-    distanceLabel.textContent = `${plotPositionM.toFixed(1)}m`;
-    distanceLabel.setAttribute('data-position', plotPositionM); // 後で位置更新するために保存
-    distanceLabel.style.left = `${meterToPixel(plotPositionM)}px`;
-    pathPlotsContainer.appendChild(distanceLabel);
+    // ★経過時間表示用のラベルを追加 (一番上) ★
+    const timeLabel = document.createElement('span');
+    timeLabel.classList.add('plot-time-label'); // 新しいCSSクラスを追加
+    timeLabel.textContent = `${plotTimeS.toFixed(1)}s`; // 経過時間を小数点以下1桁で表示
+    timeLabel.setAttribute('data-position', plotPositionM);
+    timeLabel.style.left = `${meterToPixel(plotPositionM)}px`;
+    pathPlotsContainer.appendChild(timeLabel);
 
-    // 速度表示用のラベル
+    // 速度表示用のラベル (中央)
     const velocityLabel = document.createElement('span');
     velocityLabel.classList.add('plot-velocity-label');
     velocityLabel.textContent = `${plotVelocityM.toFixed(1)}m/s`;
-    velocityLabel.setAttribute('data-position', plotPositionM); // 後で位置更新するために保存
+    velocityLabel.setAttribute('data-position', plotPositionM);
     velocityLabel.style.left = `${meterToPixel(plotPositionM)}px`;
     pathPlotsContainer.appendChild(velocityLabel);
+
+    // 距離表示用のラベル (一番下)
+    const distanceLabel = document.createElement('span');
+    distanceLabel.classList.add('plot-distance-label');
+    distanceLabel.textContent = `${plotPositionM.toFixed(1)}m`;
+    distanceLabel.setAttribute('data-position', plotPositionM);
+    distanceLabel.style.left = `${meterToPixel(plotPositionM)}px`;
+    pathPlotsContainer.appendChild(distanceLabel);
 }
 
 /**
  * スライド移動や自動スクロール時に、すべての要素の位置を再計算して更新する関数。
  */
 function updateElementsPosition() {
-    // オブジェクトの位置を更新
     objectElement.style.left = `${meterToPixel(position)}px`;
 
-    // 軌跡のプロットの位置を更新
     const plotDots = pathPlotsContainer.querySelectorAll('.plot-dot');
     plotDots.forEach(dot => {
         const plotPositionM = parseFloat(dot.getAttribute('data-position'));
         dot.style.left = `${meterToPixel(plotPositionM)}px`;
     });
 
-    const distanceLabels = pathPlotsContainer.querySelectorAll('.plot-distance-label');
-    distanceLabels.forEach(label => {
+    // ★経過時間ラベルの位置を更新★
+    const timeLabels = pathPlotsContainer.querySelectorAll('.plot-time-label');
+    timeLabels.forEach(label => {
         const plotPositionM = parseFloat(label.getAttribute('data-position'));
         label.style.left = `${meterToPixel(plotPositionM)}px`;
     });
@@ -315,7 +312,12 @@ function updateElementsPosition() {
         label.style.left = `${meterToPixel(plotPositionM)}px`;
     });
 
-    // 目盛りの再生成（表示範囲が変わったため）
+    const distanceLabels = pathPlotsContainer.querySelectorAll('.plot-distance-label');
+    distanceLabels.forEach(label => {
+        const plotPositionM = parseFloat(label.getAttribute('data-position'));
+        label.style.left = `${meterToPixel(plotPositionM)}px`;
+    });
+
     generateScaleMarks();
 }
 
