@@ -23,6 +23,11 @@
                 <label for="simSpeed">シミュレーション速度 (倍):</label>
                 <input type="number" id="simSpeed" value="1" step="0.1" min="0.1">
             </div>
+            <div>
+                <label for="objectImage">オブジェクトの画像:</label>
+                <input type="file" id="objectImage" accept="image/*">
+            </div>
+            <button id="revertButton">デフォルトに戻す</button>
             <button id="startButton">スタート</button>
             <button id="resetButton">リセット</button>
         </div>
@@ -40,7 +45,8 @@
                 </div>
             <div class="path-plots">
                 </div>
-        </div>
+            <div id="data-table-container"></div>
+            </div>
 
         <div class="footer">
             <p>※オブジェクトは左端からスタートします。画面の右端を超えると見えなくなります。</p>

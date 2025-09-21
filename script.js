@@ -4,6 +4,8 @@ const accelerationInput = document.getElementById('acceleration');
 const simSpeedInput = document.getElementById('simSpeed');
 const startButton = document.getElementById('startButton');
 const resetButton = document.getElementById('resetButton');
+const objectImageInput = document.getElementById('objectImage');
+const revertButton = document.getElementById('revertButton');
 const timeDisplay = document.getElementById('timeDisplay');
 const velocityDisplay = document.getElementById('velocityDisplay');
 const positionDisplay = document.getElementById('positionDisplay');
@@ -11,109 +13,75 @@ const objectElement = document.getElementById('object');
 const simulationArea = document.querySelector('.simulation-area');
 const scaleMarksContainer = document.querySelector('.scale-marks');
 const pathPlotsContainer = document.querySelector('.path-plots');
+// ★ここから追加★
+const dataTableContainer = document.getElementById('data-table-container');
+// ★ここまで追加★
 
 // 物理量の初期値と現在の値
-let v0 = parseFloat(initialVelocityInput.value); // 初期速度 (m/s)
-let a = parseFloat(accelerationInput.value);   // 加速度 (m/s^2)
-let simSpeed = parseFloat(simSpeedInput.value); // シミュレーション速度倍率
+let v0 = parseFloat(initialVelocityInput.value);
+let a = parseFloat(accelerationInput.value);
+let simSpeed = parseFloat(simSpeedInput.value);
 
-let time = 0;      // 現在の時間 (s)
-let velocity = v0; // 現在の速度 (m/s)
-let position = 0;  // 現在の位置 (m)
+let time = 0;
+let velocity = v0;
+let position = 0;
 
-// 軌跡プロット用の変数
-let lastPlotTime = 0; // 前回プロットを追加した時刻 (s)
-const PLOT_TIME_INTERVAL_S = 1; // ★1秒ごとにプロットを追加★
+let lastPlotTime = 0;
+const PLOT_TIME_INTERVAL_S = 1;
 
-// アニメーションフレーム管理
 let animationFrameId = null;
 let lastTimestamp = 0;
 
-// シミュレーションの状態
 let isRunning = false;
 
-// シミュレーションエリアの固定幅とスケール
-const SIM_AREA_WIDTH_PX = 1200; // style.css で設定した新しい幅
-const TOTAL_SIM_DISTANCE_M = 2000; // -1000m から 1000m まで
-const SCALE_FACTOR = SIM_AREA_WIDTH_PX / 200; // 画面幅を200mで割る（仮の表示範囲）
-// SCALE_FACTOR は表示する「メートルあたりのピクセル数」を表す。
-// 例えば、200mを1200pxで表示するなら 1200 / 200 = 6px/m
+const SIM_AREA_WIDTH_PX = 1200;
+const TOTAL_SIM_DISTANCE_M = 2000;
+const SCALE_FACTOR = SIM_AREA_WIDTH_PX / 200;
 
-// シミュレーション全体の物理的な範囲
 const GLOBAL_MIN_POSITION_M = -1000;
 const GLOBAL_MAX_POSITION_M = 1000;
 
-// ★表示ウィンドウの現在の中心位置 (メートル)★
-let currentViewCenterM = 0; // シミュレーション開始時は0mが中心
+let currentViewCenterM = 0;
 
-// スライド移動関連の変数
 let isDragging = false;
 let dragStartX = 0;
 let initialViewCenterM = 0;
 
 // --- 関数定義 ---
-
-/**
- * メートルをピクセル位置に変換するヘルパー関数
- * @param {number} meterPosition - メートル単位の位置
- * @returns {number} ピクセル単位の位置
- */
 function meterToPixel(meterPosition) {
-    // currentViewCenterM を基準として、表示範囲の左端のメートル位置を計算
     const viewPortLeftM = currentViewCenterM - (SIM_AREA_WIDTH_PX / 2) / SCALE_FACTOR;
     return (meterPosition - viewPortLeftM) * SCALE_FACTOR;
 }
 
-/**
- * ピクセルをメートル位置に変換するヘルパー関数
- * @param {number} pixelPosition - ピクセル単位の位置
- * @returns {number} メートル単位の位置
- */
 function pixelToMeter(pixelPosition) {
     const viewPortLeftM = currentViewCenterM - (SIM_AREA_WIDTH_PX / 2) / SCALE_FACTOR;
     return (pixelPosition / SCALE_FACTOR) + viewPortLeftM;
 }
 
-
-/**
- * 横軸の目盛りを生成する関数。
- * -1000mから1000mまでの範囲で5m間隔の目盛りと、10mごとのラベルを生成します。
- * ただし、表示範囲内のみ動的に生成・更新します。
- */
 function generateScaleMarks() {
-    scaleMarksContainer.innerHTML = ''; // 既存の目盛りをクリア
-
-    // 現在の表示範囲を計算
+    scaleMarksContainer.innerHTML = '';
     const viewPortLeftM = currentViewCenterM - (SIM_AREA_WIDTH_PX / 2) / SCALE_FACTOR;
     const viewPortRightM = currentViewCenterM + (SIM_AREA_WIDTH_PX / 2) / SCALE_FACTOR;
-
-    // 目盛りの描画範囲を少し広めにとる
     const startMarkM = Math.floor(Math.max(GLOBAL_MIN_POSITION_M, viewPortLeftM - 50) / 5) * 5;
     const endMarkM = Math.ceil(Math.min(GLOBAL_MAX_POSITION_M, viewPortRightM + 50) / 5) * 5;
-
     for (let m = startMarkM; m <= endMarkM; m += 5) {
         const markX = meterToPixel(m);
-
-        // シミュレーションエリアの端を大きく超える目盛りは描画しない
         if (markX < -100 || markX > SIM_AREA_WIDTH_PX + 100) continue;
-
         const markLine = document.createElement('div');
         markLine.classList.add('scale-mark');
         markLine.style.left = `${markX}px`;
-
-        if (m % 100 === 0) { // 100mごとは長めの線
+        if (m % 100 === 0) {
             markLine.style.height = '20px';
             markLine.style.backgroundColor = '#444';
-        } else if (m % 50 === 0) { // 50mごとは中間の線
+        } else if (m % 50 === 0) {
             markLine.style.height = '15px';
-        } else if (m % 10 === 0) { // 10mごとは少し長めの線
+        } else if (m % 10 === 0) {
             markLine.style.height = '12px';
-        } else { // 5mは短めの線
+        } else {
             markLine.style.height = '6px';
         }
         scaleMarksContainer.appendChild(markLine);
-
-        if (m % 100 === 0 || m % 50 === 0) { // 50mと100mごとのラベル
+        if (m % 100 === 0 || m % 50 === 0) {
             const markLabel = document.createElement('span');
             markLabel.classList.add('scale-label');
             markLabel.textContent = `${m}m`;
@@ -123,9 +91,6 @@ function generateScaleMarks() {
     }
 }
 
-/**
- * シミュレーションの開始と一時停止を切り替える関数。
- */
 function toggleSimulation() {
     if (isRunning) {
         cancelAnimationFrame(animationFrameId);
@@ -135,79 +100,53 @@ function toggleSimulation() {
     } else {
         isRunning = true;
         startButton.textContent = '一時停止';
-        lastTimestamp = performance.now(); // アニメーション開始時のタイムスタンプを記録
+        lastTimestamp = performance.now();
         animationFrameId = requestAnimationFrame(animate);
     }
 }
 
-/**
- * シミュレーションの状態を初期化する関数。
- * 入力値の取得、物理量のリセット、オブジェクトの初期位置設定などを行います。
- */
 function initializeSimulation() {
-    // 既存のアニメーションがあれば停止
     if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
-
-    // 入力値の取得
     v0 = parseFloat(initialVelocityInput.value);
     a = parseFloat(accelerationInput.value);
     simSpeed = parseFloat(simSpeedInput.value);
-
-    // 物理量をリセット
     time = 0;
     velocity = v0;
-    position = 0; // スタート地点は常に0m
-    lastPlotTime = 0; // プロット時刻をリセット
-
-    // ★表示ウィンドウの中心を0mにリセット★
+    position = 0;
+    lastPlotTime = 0;
     currentViewCenterM = 0;
-
-    // オブジェクトの初期位置を0m (中央) に設定
     objectElement.style.left = `${meterToPixel(0)}px`;
-
-    // 軌跡のプロットをクリア
     pathPlotsContainer.innerHTML = '';
-
-    // 表示を更新
+    // ★ここから追加★
+    dataTableContainer.innerHTML = ''; // テーブルをクリア
+    // ★ここまで追加★
     updateDisplay();
-
-    // 横軸目盛りの再生成
     generateScaleMarks();
-
-    // フラグをリセットし、ボタン表示を「スタート」に戻す
     isRunning = false;
     startButton.textContent = 'スタート';
 }
 
-/**
- * シミュレーションのメインアニメーションループ。
- * requestAnimationFrameによってフレームごとに呼び出されます。
- * @param {DOMHighResTimeStamp} timestamp - 現在のタイムスタンプ
- */
 function animate(timestamp) {
     if (!isRunning) return;
-
     const deltaTime = (timestamp - lastTimestamp) / 1000 * simSpeed;
     lastTimestamp = timestamp;
-
     time += deltaTime;
     const newPosition = v0 * time + 0.5 * a * time * time;
     const newVelocity = v0 + a * time;
 
-    // --- 軌跡のプロットのロジック ---
     if (Math.floor(time / PLOT_TIME_INTERVAL_S) > Math.floor(lastPlotTime / PLOT_TIME_INTERVAL_S)) {
         const currentPlotPointTime = Math.floor(time / PLOT_TIME_INTERVAL_S) * PLOT_TIME_INTERVAL_S;
-
         if (currentPlotPointTime > lastPlotTime) {
              const plotPositionAtTime = v0 * currentPlotPointTime + 0.5 * a * currentPlotPointTime * currentPlotPointTime;
              const plotVelocityAtTime = v0 + a * currentPlotPointTime;
-
             if (plotPositionAtTime >= GLOBAL_MIN_POSITION_M && plotPositionAtTime <= GLOBAL_MAX_POSITION_M) {
-                // ★経過時間を引数として追加★
                 addPathPlot(plotPositionAtTime, plotVelocityAtTime, currentPlotPointTime);
+                // ★ここから追加★
+                addTableRow(currentPlotPointTime, plotVelocityAtTime, plotPositionAtTime);
+                // ★ここまで追加★
             }
             lastPlotTime = currentPlotPointTime;
         }
@@ -215,9 +154,7 @@ function animate(timestamp) {
 
     position = newPosition;
     velocity = newVelocity;
-
     objectElement.style.left = `${meterToPixel(position)}px`;
-
     const objectScreenX = meterToPixel(position);
     const centerScreenX = SIM_AREA_WIDTH_PX / 2;
     const scrollThreshold = SIM_AREA_WIDTH_PX * 0.2;
@@ -233,12 +170,9 @@ function animate(timestamp) {
         if (currentViewCenterM + halfViewPortWidthM > GLOBAL_MAX_POSITION_M) {
             currentViewCenterM = GLOBAL_MAX_POSITION_M - halfViewPortWidthM;
         }
-
         updateElementsPosition();
     }
-
     updateDisplay();
-
     if (position >= GLOBAL_MIN_POSITION_M && position <= GLOBAL_MAX_POSITION_M) {
         animationFrameId = requestAnimationFrame(animate);
     } else {
@@ -249,28 +183,34 @@ function animate(timestamp) {
     }
 }
 
-/**
- * シミュレーションエリアに軌跡のプロットを追加する関数。
- * @param {number} plotPositionM - プロットする位置 (m)
- * @param {number} plotVelocityM - プロットする時点の速度 (m/s)
- * @param {number} plotTimeS - プロットする時点の経過時間 (s) // ★新しい引数★
- */
-function addPathPlot(plotPositionM, plotVelocityM, plotTimeS) { // ★引数を追加★
+function addPathPlot(plotPositionM, plotVelocityM, plotTimeS) {
     const plotDot = document.createElement('div');
     plotDot.classList.add('plot-dot');
     plotDot.setAttribute('data-position', plotPositionM);
     plotDot.style.left = `${meterToPixel(plotPositionM)}px`;
     pathPlotsContainer.appendChild(plotDot);
 
-    // ★経過時間表示用のラベルを追加 (一番上) ★
+    if (objectElement.classList.contains('custom-object')) {
+        plotDot.classList.add('custom-object');
+        plotDot.classList.add('custom-plot-image');
+        plotDot.style.backgroundImage = objectElement.style.backgroundImage;
+        plotDot.style.backgroundSize = objectElement.style.backgroundSize;
+        plotDot.style.backgroundRepeat = objectElement.style.backgroundRepeat;
+        plotDot.style.backgroundPosition = objectElement.style.backgroundPosition;
+        plotDot.style.backgroundColor = objectElement.style.backgroundColor;
+        plotDot.style.borderRadius = objectElement.style.borderRadius;
+        plotDot.style.width = objectElement.style.width;
+        plotDot.style.height = objectElement.style.height;
+        plotDot.style.bottom = objectElement.style.bottom;
+    }
+
     const timeLabel = document.createElement('span');
-    timeLabel.classList.add('plot-time-label'); // 新しいCSSクラスを追加
-    timeLabel.textContent = `${plotTimeS.toFixed(1)}s`; // 経過時間を小数点以下1桁で表示
+    timeLabel.classList.add('plot-time-label');
+    timeLabel.textContent = `${plotTimeS.toFixed(1)}s`;
     timeLabel.setAttribute('data-position', plotPositionM);
     timeLabel.style.left = `${meterToPixel(plotPositionM)}px`;
     pathPlotsContainer.appendChild(timeLabel);
 
-    // 速度表示用のラベル (中央)
     const velocityLabel = document.createElement('span');
     velocityLabel.classList.add('plot-velocity-label');
     velocityLabel.textContent = `${plotVelocityM.toFixed(1)}m/s`;
@@ -278,7 +218,6 @@ function addPathPlot(plotPositionM, plotVelocityM, plotTimeS) { // ★引数を�
     velocityLabel.style.left = `${meterToPixel(plotPositionM)}px`;
     pathPlotsContainer.appendChild(velocityLabel);
 
-    // 距離表示用のラベル (一番下)
     const distanceLabel = document.createElement('span');
     distanceLabel.classList.add('plot-distance-label');
     distanceLabel.textContent = `${plotPositionM.toFixed(1)}m`;
@@ -287,9 +226,46 @@ function addPathPlot(plotPositionM, plotVelocityM, plotTimeS) { // ★引数を�
     pathPlotsContainer.appendChild(distanceLabel);
 }
 
+// ★ここから追加★
 /**
- * スライド移動や自動スクロール時に、すべての要素の位置を再計算して更新する関数。
+ * データテーブルに行を追加する関数。
+ * @param {number} timeS - 経過時間 (s)
+ * @param {number} velocityMps - 速度 (m/s)
+ * @param {number} positionM - 位置 (m)
  */
+function addTableRow(timeS, velocityMps, positionM) {
+    let table = document.getElementById('data-table');
+    if (!table) {
+        // テーブルが存在しない場合は新しく作成
+        table = document.createElement('table');
+        table.id = 'data-table';
+        dataTableContainer.appendChild(table);
+
+        const headerRow = table.insertRow();
+        const thTime = document.createElement('th');
+        thTime.textContent = '時間 (s)';
+        headerRow.appendChild(thTime);
+        const thVelocity = document.createElement('th');
+        thVelocity.textContent = '速度 (m/s)';
+        headerRow.appendChild(thVelocity);
+        const thPosition = document.createElement('th');
+        thPosition.textContent = '位置 (m)';
+        headerRow.appendChild(thPosition);
+    }
+
+    const newRow = table.insertRow();
+    const cellTime = newRow.insertCell();
+    cellTime.textContent = timeS.toFixed(2);
+    const cellVelocity = newRow.insertCell();
+    cellVelocity.textContent = velocityMps.toFixed(2);
+    const cellPosition = newRow.insertCell();
+    cellPosition.textContent = positionM.toFixed(2);
+    
+    // スクロールを一番下にする
+    dataTableContainer.scrollTop = dataTableContainer.scrollHeight;
+}
+// ★ここまで追加★
+
 function updateElementsPosition() {
     objectElement.style.left = `${meterToPixel(position)}px`;
 
@@ -299,7 +275,6 @@ function updateElementsPosition() {
         dot.style.left = `${meterToPixel(plotPositionM)}px`;
     });
 
-    // ★経過時間ラベルの位置を更新★
     const timeLabels = pathPlotsContainer.querySelectorAll('.plot-time-label');
     timeLabels.forEach(label => {
         const plotPositionM = parseFloat(label.getAttribute('data-position'));
@@ -321,161 +296,157 @@ function updateElementsPosition() {
     generateScaleMarks();
 }
 
-
-/**
- * 現在の時間、速度、位置を画面に表示する関数。
- */
 function updateDisplay() {
     timeDisplay.textContent = time.toFixed(2);
     velocityDisplay.textContent = velocity.toFixed(2);
     positionDisplay.textContent = position.toFixed(2);
 }
 
-// --- イベントリスナー ---
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-// 入力値が変更されたら、シミュレーションを初期化し、停止状態に戻す
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imageUrl = e.target.result;
+        const img = new Image();
+        img.onload = function() {
+            const maxWidth = 80;
+            const maxHeight = 80;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > maxWidth) {
+                    height = height * (maxWidth / width);
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width = width * (maxHeight / height);
+                    height = maxHeight;
+                }
+            }
+
+            objectElement.style.backgroundImage = `url(${imageUrl})`;
+            objectElement.style.backgroundSize = 'contain';
+            objectElement.style.backgroundRepeat = 'no-repeat';
+            objectElement.style.backgroundPosition = 'center';
+            objectElement.style.backgroundColor = 'transparent';
+            objectElement.style.borderRadius = '0';
+            objectElement.style.width = `${width}px`;
+            objectElement.style.height = `${height}px`;
+            objectElement.style.bottom = `${400 - (height / 2)}px`;
+
+            objectElement.classList.add('custom-object');
+        };
+        img.src = imageUrl;
+    };
+    reader.readAsDataURL(file);
+    initializeSimulation();
+}
+
+function revertToDefault() {
+    objectElement.style.backgroundImage = '';
+    objectElement.style.backgroundSize = '';
+    objectElement.style.backgroundRepeat = '';
+    objectElement.style.backgroundPosition = '';
+    objectElement.style.backgroundColor = '#007bff';
+    objectElement.style.borderRadius = '5px 5px 0 0';
+    objectElement.style.width = '60px';
+    objectElement.style.height = '30px';
+    objectElement.style.bottom = '390px';
+    objectElement.classList.remove('custom-object');
+
+    const plotDots = pathPlotsContainer.querySelectorAll('.plot-dot');
+    plotDots.forEach(dot => {
+        dot.style.backgroundImage = '';
+        dot.style.backgroundSize = '';
+        dot.style.backgroundRepeat = '';
+        dot.style.backgroundPosition = '';
+        dot.style.backgroundColor = 'rgba(0, 123, 255, 0.3)';
+        dot.style.borderRadius = '5px 5px 0 0';
+        dot.style.width = '60px';
+        dot.style.height = '30px';
+        dot.style.bottom = '390px';
+        dot.classList.remove('custom-object');
+    });
+
+    objectImageInput.value = '';
+    initializeSimulation();
+}
+
+// --- イベントリスナー ---
 initialVelocityInput.addEventListener('change', initializeSimulation);
 accelerationInput.addEventListener('change', initializeSimulation);
 simSpeedInput.addEventListener('change', initializeSimulation);
-
-// スタート/一時停止ボタンのクリックイベント
 startButton.addEventListener('click', toggleSimulation);
-
-// リセットボタンのクリックイベント
 resetButton.addEventListener('click', initializeSimulation);
+objectImageInput.addEventListener('change', handleImageUpload);
+revertButton.addEventListener('click', revertToDefault);
 
-// ★シミュレーションエリアのドラッグによるスライド移動機能★
 simulationArea.addEventListener('mousedown', (e) => {
-    if (isRunning) return; // シミュレーション中はドラッグ無効
-
+    if (isRunning) return;
     isDragging = true;
     dragStartX = e.clientX;
-    initialViewCenterM = currentViewCenterM; // ドラッグ開始時の中心位置を記録
-    simulationArea.style.cursor = 'grabbing'; // カーソルを変更
+    initialViewCenterM = currentViewCenterM;
+    simulationArea.style.cursor = 'grabbing';
 });
 
 simulationArea.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-
-    const dragDeltaPx = e.clientX - dragStartX; // ドラッグによるピクセル移動量
-    const dragDeltaM = dragDeltaPx / SCALE_FACTOR; // ピクセル移動量をメートルに変換
-
-    // 新しい中心位置を計算 (ドラッグ方向と反対に動かすためマイナス)
+    const dragDeltaPx = e.clientX - dragStartX;
+    const dragDeltaM = dragDeltaPx / SCALE_FACTOR;
     let newViewCenterM = initialViewCenterM - dragDeltaM;
-
-    // 表示範囲の境界チェック
     const viewPortWidthM = SIM_AREA_WIDTH_PX / SCALE_FACTOR;
     const halfViewPortWidthM = viewPortWidthM / 2;
-
     if (newViewCenterM - halfViewPortWidthM < GLOBAL_MIN_POSITION_M) {
         newViewCenterM = GLOBAL_MIN_POSITION_M + halfViewPortWidthM;
     }
     if (newViewCenterM + halfViewPortWidthM > GLOBAL_MAX_POSITION_M) {
         newViewCenterM = GLOBAL_MAX_POSITION_M - halfViewPortWidthM;
     }
-
     currentViewCenterM = newViewCenterM;
-
-    // 全要素の位置を更新
     updateElementsPosition();
 });
 
 simulationArea.addEventListener('mouseup', () => {
     isDragging = false;
-    simulationArea.style.cursor = 'grab'; // カーソルを元に戻す
+    simulationArea.style.cursor = 'grab';
 });
 
 simulationArea.addEventListener('mouseleave', () => {
-    // エリア外に出たらドラッグを終了
     isDragging = false;
     simulationArea.style.cursor = 'grab';
 });
 
-// ★シミュレーションエリアのドラッグによるスライド移動機能★
-simulationArea.addEventListener('mousedown', (e) => {
-    if (isRunning) return; // シミュレーション中はドラッグ無効
-
-    isDragging = true;
-    dragStartX = e.clientX;
-    initialViewCenterM = currentViewCenterM; // ドラッグ開始時の中心位置を記録
-    simulationArea.style.cursor = 'grabbing'; // カーソルを変更
-});
-
-simulationArea.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-
-    const dragDeltaPx = e.clientX - dragStartX; // ドラッグによるピクセル移動量
-    const dragDeltaM = dragDeltaPx / SCALE_FACTOR; // ピクセル移動量をメートルに変換
-
-    // 新しい中心位置を計算 (ドラッグ方向と反対に動かすためマイナス)
-    let newViewCenterM = initialViewCenterM - dragDeltaM;
-
-    // 表示範囲の境界チェック
-    const viewPortWidthM = SIM_AREA_WIDTH_PX / SCALE_FACTOR;
-    const halfViewPortWidthM = viewPortWidthM / 2;
-
-    if (newViewCenterM - halfViewPortWidthM < GLOBAL_MIN_POSITION_M) {
-        newViewCenterM = GLOBAL_MIN_POSITION_M + halfViewPortWidthM;
-    }
-    if (newViewCenterM + halfViewPortWidthM > GLOBAL_MAX_POSITION_M) {
-        newViewCenterM = GLOBAL_MAX_POSITION_M - halfViewPortWidthM;
-    }
-
-    currentViewCenterM = newViewCenterM;
-
-    // 全要素の位置を更新
-    updateElementsPosition();
-});
-
-simulationArea.addEventListener('mouseup', () => {
-    isDragging = false;
-    simulationArea.style.cursor = 'grab'; // カーソルを元に戻す
-});
-
-simulationArea.addEventListener('mouseleave', () => {
-    // エリア外に出たらドラッグを終了
-    isDragging = false;
-    simulationArea.style.cursor = 'grab';
-});
-
-// ★タッチイベントの追加★
 simulationArea.addEventListener('touchstart', (e) => {
-    if (isRunning) return; // シミュレーション中はタッチ操作無効
-    e.preventDefault(); // デフォルトのスクロール動作などを防止
-
+    if (isRunning) return;
+    e.preventDefault();
     isDragging = true;
-    // 最初のタッチポイントのX座標を取得
     dragStartX = e.touches[0].clientX;
     initialViewCenterM = currentViewCenterM;
-    // タッチデバイスではカーソルの変更は直接反映されないが、ロジックとしては含める
     simulationArea.style.cursor = 'grabbing';
-}, { passive: false }); // preventDefault() を使うため passive: false に設定
+}, { passive: false });
 
 simulationArea.addEventListener('touchmove', (e) => {
     if (!isDragging) return;
-    e.preventDefault(); // デフォルトのスクロール動作などを防止
-
-    // 現在のタッチポイントのX座標を取得
+    e.preventDefault();
     const currentTouchX = e.touches[0].clientX;
     const dragDeltaPx = currentTouchX - dragStartX;
     const dragDeltaM = dragDeltaPx / SCALE_FACTOR;
-
     let newViewCenterM = initialViewCenterM - dragDeltaM;
-
     const viewPortWidthM = SIM_AREA_WIDTH_PX / SCALE_FACTOR;
     const halfViewPortWidthM = viewPortWidthM / 2;
-
     if (newViewCenterM - halfViewPortWidthM < GLOBAL_MIN_POSITION_M) {
         newViewCenterM = GLOBAL_MIN_POSITION_M + halfViewPortWidthM;
     }
     if (newViewCenterM + halfViewPortWidthM > GLOBAL_MAX_POSITION_M) {
         newViewCenterM = GLOBAL_MAX_POSITION_M - halfViewPortWidthM;
     }
-
     currentViewCenterM = newViewCenterM;
-
     updateElementsPosition();
-}, { passive: false }); // preventDefault() を使うため passive: false に設定
+}, { passive: false });
 
 simulationArea.addEventListener('touchend', () => {
     isDragging = false;
@@ -487,5 +458,4 @@ simulationArea.addEventListener('touchcancel', () => {
     simulationArea.style.cursor = 'grab';
 });
 
-// 初期表示とアニメーションの準備
-initializeSimulation(); // ページロード時に一度初期化
+initializeSimulation();

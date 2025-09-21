@@ -2,7 +2,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* 上部に寄せる */
+    align-items: flex-start;
     min-height: 100vh;
     background-color: #f0f2f5;
     margin: 0;
@@ -16,7 +16,7 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     padding: 30px;
     width: 90%;
-    max-width: 1300px; /* シミュレーションエリアの新しい幅に合わせて調整 */
+    max-width: 1300px;
     text-align: center;
 }
 
@@ -53,10 +53,10 @@ h1 {
     width: 120px;
     font-size: 1em;
     text-align: center;
-    -moz-appearance: textfield; /* Firefox の上下矢印を非表示 */
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
-/* Chrome, Safari, Edge の上下矢印を非表示 */
 .controls input[type="number"]::-webkit-outer-spin-button,
 .controls input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -71,7 +71,7 @@ button {
     cursor: pointer;
     font-size: 1em;
     transition: background-color 0.3s ease;
-    align-self: flex-end; /* input の下に揃える */
+    align-self: flex-end;
 }
 
 #startButton {
@@ -88,6 +88,13 @@ button {
 
 #resetButton:hover {
     background-color: #c82333;
+}
+
+#revertButton {
+    background-color: #6c757d;
+}
+#revertButton:hover {
+    background-color: #5a6268;
 }
 
 .display-area {
@@ -112,15 +119,15 @@ button {
     height: 800px;
     border: 2px solid #ccc;
     background-color: #f8f9fa;
-    overflow: hidden; /* スライドさせるので overflow: hidden は必須 */
+    overflow: hidden;
     margin: 0 auto 30px auto;
     border-radius: 8px;
-    cursor: grab; /* ドラッグできることを示すカーソル */
+    cursor: grab;
 }
 
 .ground-line {
     position: absolute;
-    bottom: 400px; /* 600pxから400pxに変更 (高さの半分) */
+    bottom: 400px;
     left: 0;
     width: 100%;
     height: 2px;
@@ -128,68 +135,72 @@ button {
     z-index: 1;
 }
 
-/* #object (動く車) のスタイル */
 #object {
     position: absolute;
     width: 60px;
     height: 30px;
-    background-color: #007bff; /* 車のボディの色 */
-    border-radius: 5px 5px 0 0; /* 上部を少し丸くする */
-    bottom: 390px; /* 地面線 (400px) の上に配置するよう調整 (400 - 10px(車体の底からタイヤの下まで)) */
-    left: 0px; /* JavaScriptで上書きされるが初期値として */
+    background-color: #007bff;
+    border-radius: 5px 5px 0 0;
+    bottom: 390px;
+    left: 0px;
     z-index: 3;
-    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2); /* 影で立体感を出す */
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* #object::before (車の窓) */
-#object::before {
+/* ★ここから修正★ */
+#object.custom-object {
+    /* 背景色とボーダーをリセット */
+    background-color: transparent;
+    border-radius: 0;
+}
+
+#object:not(.custom-object)::before {
     content: '';
     position: absolute;
     top: -15px;
     left: 15px;
     width: 30px;
     height: 20px;
-    background-color: #5bb7ff; /* 窓の色 */
-    border-radius: 3px 3px 0 0; /* 窓の上部を丸く */
-    z-index: 4; /* 車体より手前に */
+    background-color: #5bb7ff;
+    border-radius: 3px 3px 0 0;
+    z-index: 4;
 }
 
-/* #object::after (車のタイヤ) */
-#object::after {
+#object:not(.custom-object)::after {
     content: '';
     position: absolute;
     bottom: -15px;
     left: 10px;
     width: 20px;
     height: 20px;
-    background-color: #333; /* タイヤの色 */
-    border-radius: 50%; /* 円形にする */
-    z-index: 2; /* 車体より奥に */
-    box-shadow: 40px 0 0 #333; /* 後輪を表現（x軸方向に移動した影） */
+    background-color: #333;
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow: 40px 0 0 #333;
 }
+/* ★ここまで修正★ */
 
 .scale-marks {
     position: absolute;
-    bottom: 400px; /* 地面線と同じ高さ: 600pxから400pxに変更 */
+    bottom: 400px;
     left: 0;
     width: 100%;
     height: 30px;
     display: flex;
-    justify-content: flex-start; /* 左寄せ */
+    justify-content: flex-start;
     font-size: 0.8em;
     color: #666;
     z-index: 2;
 }
 
-/* 目盛りの線とラベルのスタイルを調整 (見やすくするため) */
 .scale-mark {
     position: absolute;
     bottom: 0;
     width: 1px;
-    background-color: #a0a0a0; /* 少し薄めに */
+    background-color: #a0a0a0;
     transform: translateX(-50%);
     z-index: 2;
-    height: 6px; /* 短い目盛り線の高さ */
+    height: 6px;
 }
 
 .scale-label {
@@ -197,7 +208,7 @@ button {
     bottom: -30px;
     transform: translateX(-50%);
     white-space: nowrap;
-    font-size: 1em; /* 少し大きく */
+    font-size: 1em;
     font-weight: bold;
     color: #555;
     z-index: 2;
@@ -212,53 +223,56 @@ button {
     z-index: 2;
 }
 
-/* .plot-dot (軌跡の車) のスタイル */
 .plot-dot {
     position: absolute;
     width: 60px;
     height: 30px;
-    background-color: rgba(0, 123, 255, 0.3); /* 半透明の車のボディ色 */
-    border-radius: 5px 5px 0 0; /* 上部を少し丸くする */
+    background-color: rgba(0, 123, 255, 0.3);
+    border-radius: 5px 5px 0 0;
     transform: translateX(-50%);
-    bottom: 390px; /* #objectと同じ高さに調整: 590pxから390pxに変更 */
+    bottom: 390px;
     z-index: 3;
-    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1); /* 影で立体感を出す（薄めに） */
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* .plot-dot::before (軌跡の窓) */
-.plot-dot::before {
+/* ★ここから修正★ */
+.plot-dot.custom-object {
+    background-color: transparent;
+    border-radius: 0;
+}
+
+.plot-dot:not(.custom-object)::before {
     content: '';
     position: absolute;
     top: -15px;
     left: 15px;
     width: 30px;
     height: 20px;
-    background-color: rgba(91, 183, 255, 0.3); /* 半透明の窓の色 */
-    border-radius: 3px 3px 0 0; /* 窓の上部を丸く */
+    background-color: rgba(91, 183, 255, 0.3);
+    border-radius: 3px 3px 0 0;
     z-index: 4;
 }
 
-/* .plot-dot::after (軌跡のタイヤ) */
-.plot-dot::after {
+.plot-dot:not(.custom-object)::after {
     content: '';
     position: absolute;
     bottom: -15px;
     left: 10px;
     width: 20px;
     height: 20px;
-    background-color: rgba(51, 51, 51, 0.3); /* 半透明のタイヤの色 */
-    border-radius: 50%; /* 円形にする */
+    background-color: rgba(51, 51, 51, 0.3);
+    border-radius: 50%;
     z-index: 2;
-    box-shadow: 40px 0 0 rgba(51, 51, 51, 0.3); /* 後輪を表現（半透明） */
+    box-shadow: 40px 0 0 rgba(51, 51, 51, 0.3);
 }
+/* ★ここまで修正★ */
 
-/* 新しく追加する経過時間ラベルのスタイル */
 .plot-time-label {
     position: absolute;
-    bottom: 470px; /* 速度ラベルよりさらに上に表示 */
+    bottom: 470px;
     transform: translateX(-50%);
-    font-size: 0.7em; /* 他のラベルより少し小さくする */
-    color: #2a6f2a; /* 時間なので少し違う色に */
+    font-size: 0.7em;
+    color: #2a6f2a;
     white-space: nowrap;
     background-color: rgba(255, 255, 255, 0.7);
     padding: 2px 4px;
@@ -269,7 +283,7 @@ button {
 
 .plot-velocity-label {
     position: absolute;
-    bottom: 445px; /* 経過時間ラベルと距離ラベルの間に配置 */
+    bottom: 445px;
     transform: translateX(-50%);
     font-size: 0.8em;
     color: #444;
@@ -283,7 +297,7 @@ button {
 
 .plot-distance-label {
     position: absolute;
-    bottom: 420px; /* 軌跡車の少し上に表示 */
+    bottom: 420px;
     transform: translateX(-50%);
     font-size: 0.9em;
     color: #666;
@@ -301,3 +315,46 @@ button {
     color: #777;
     line-height: 1.5;
 }
+/* ★ここから追加★ */
+/* 軌跡の画像に適用する半透明クラス */
+.custom-plot-image {
+    opacity: 0.5; /* 半透明にする */
+}
+/* ★ここまで追加★ */
+
+/* ★ここから追加★ */
+#data-table-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px 8px 0 0;
+    overflow-y: auto;
+    max-height: 150px;
+    padding: 10px;
+}
+
+#data-table {
+    border-collapse: collapse;
+    width: auto;
+}
+
+#data-table th, #data-table td {
+    padding: 5px 15px;
+    border-bottom: 1px solid #ddd;
+    text-align: right;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #333;
+}
+
+#data-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    color: #555;
+    position: sticky;
+    top: 0;
+}
+/* ★ここまで追加★ */
